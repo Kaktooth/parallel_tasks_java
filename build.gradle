@@ -1,0 +1,35 @@
+plugins {
+    id 'java'
+    id "me.champeau.jmh" version "0.7.1"
+}
+
+group = 'org.kaktooth'
+version = '1.0-SNAPSHOT'
+
+ext {
+    jmh = "1.37"
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    jmh "org.openjdk.jmh:jmh-core:$jmh"
+    jmh "org.openjdk.jmh:jmh-generator-annprocess:$jmh"
+    jmhAnnotationProcessor "org.openjdk.jmh:jmh-generator-annprocess:$jmh"
+
+    testImplementation platform('org.junit:junit-bom:5.9.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jmh {
+    warmupIterations = 2
+    iterations = 4
+    resultFormat = 'JSON'
+}
