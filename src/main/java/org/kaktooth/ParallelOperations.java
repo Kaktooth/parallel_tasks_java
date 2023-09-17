@@ -27,7 +27,6 @@ public class ParallelOperations {
     }
 
     public void sum() {
-        ex = Executors.newFixedThreadPool(threadNumber);
         applyRunnable(this::waveAlgorithm);
         ex.shutdown();
     }
