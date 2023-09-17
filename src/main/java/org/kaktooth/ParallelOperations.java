@@ -1,91 +1,59 @@
 package org.kaktooth;
 
-import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 
 public class ParallelOperations {
     private final int threadNumber;
-    private Thread[] threads;
-    private int[] values;
+    private AtomicIntegerArray values;
+    private ExecutorService ex;
 
     public ParallelOperations(int[] values) {
         this.threadNumber = (int) (Math.log(values.length) / Math.log(2)) + 1;
-        this.values = values;
+        this.values = new AtomicIntegerArray(values);
+        ex = Executors.newFixedThreadPool(threadNumber);
     }
 
     public ParallelOperations(int threadNumber, int[] values) {
         this.threadNumber = threadNumber;
-        this.values = values;
+        this.values = new AtomicIntegerArray(values);
+        ex = Executors.newFixedThreadPool(threadNumber);
     }
 
 
     private void applyRunnable(Runnable runnable) {
-        threads = new Thread[threadNumber];
-        for (int i = 0; i < threadNumber; i++) {
-            threads[i] = new Thread(runnable);
-            threads[i].start();
-        }
+        ex.execute(runnable);
     }
 
     public void sum() {
+        ex = Executors.newFixedThreadPool(threadNumber);
         applyRunnable(this::waveAlgorithm);
+        ex.shutdown();
     }
 
-    private synchronized void waveAlgorithm() {
+    private void waveAlgorithm() {
 
-        if (values.length == 1) {
-            try {
-                Thread.currentThread().join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        int nextLength = (int) Math.ceil((double) values.length / 2);
-        int[] newValues = new int[nextLength];
+        int nextLength = (values.length() + 1) / 2;
+        var newValues = new AtomicIntegerArray(nextLength);
         int lastIndex;
         int sum;
         for (int i = 0; i < nextLength; i++) {
-            int haveNoPair = values.length % 2;
-            lastIndex = values.length - 1 - i;
+            int haveNoPair = values.length() % 2;
+            lastIndex = values.length() - 1 - i;
             if (haveNoPair == 1 && i == lastIndex) {
-                newValues[i] = values[i];
+                newValues.set(i, values.get(i));
             } else {
-                sum = values[i] + values[lastIndex];
-                newValues[i] = sum;
+                sum = values.get(i) + values.get(lastIndex);
+                newValues.set(i, sum);
             }
         }
 
-        System.out.println(Arrays.toString(values) + "->" + Arrays.toString(newValues));
         values = newValues;
+        System.out.println(values);
 
-        if (values.length != 1) {
-            Thread nextThread = new Thread(this::waveAlgorithm);
-            nextThread.start();
+        if (values.length() != 1) {
+            waveAlgorithm();
         }
-    }
-
-    public void sum1() {
-        applyRunnable(this::waveAlgorithm1);
-    }
-
-    private synchronized void waveAlgorithm1() {
-
-        int nextLength = (values.length + 1) / 2;
-        int[] newValues = new int[nextLength];
-        int lastIndex;
-        int sum;
-        for (int i = 0; i < nextLength; i++) {
-            int haveNoPair = values.length % 2;
-            lastIndex = values.length - 1 - i;
-            if (haveNoPair == 1 && i == lastIndex) {
-                newValues[i] = values[i];
-            } else {
-                sum = values[i] + values[lastIndex];
-                newValues[i] = sum;
-            }
-        }
-        System.out.println(Arrays.toString(values) + "->" + Arrays.toString(newValues));
-        values = newValues;
     }
 }

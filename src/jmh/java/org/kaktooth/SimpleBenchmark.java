@@ -6,22 +6,29 @@ import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@State(Scope.Thread)
 public class SimpleBenchmark {
 
     @Benchmark
     @Fork(1)
-    public void first() {
+    public void twoThread() {
 
-        ParallelOperations parallelOperations = new ParallelOperations(6, OperationsConstants.BIG_ARRAY);
+        ParallelOperations parallelOperations = new ParallelOperations(2, OperationsConstants.BIG_ARRAY);
         parallelOperations.sum();
     }
 
     @Benchmark
     @Fork(1)
-    public void second() {
+    public void fourThread() {
 
-        ParallelOperations parallelOperations = new ParallelOperations(OperationsConstants.BIG_ARRAY);
-        parallelOperations.sum1();
+        ParallelOperations parallelOperations = new ParallelOperations(4, OperationsConstants.BIG_ARRAY);
+        parallelOperations.sum();
+    }
+
+    @Benchmark
+    @Fork(1)
+    public void sixThread() {
+
+        ParallelOperations parallelOperations = new ParallelOperations(6, OperationsConstants.BIG_ARRAY);
+        parallelOperations.sum();
     }
 }
