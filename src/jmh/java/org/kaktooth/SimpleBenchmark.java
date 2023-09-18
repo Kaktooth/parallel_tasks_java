@@ -18,17 +18,25 @@ public class SimpleBenchmark {
 
     @Benchmark
     @Fork(1)
-    public void fourThread() {
+    public void sixThread() {
 
-        ParallelOperations parallelOperations = new ParallelOperations(4, OperationsConstants.BIG_ARRAY);
+        ParallelOperations parallelOperations = new ParallelOperations(6, OperationsConstants.BIG_ARRAY);
         parallelOperations.sum();
     }
 
     @Benchmark
     @Fork(1)
-    public void sixThread() {
+    public void twoThreadQueue() {
 
         ParallelOperations parallelOperations = new ParallelOperations(6, OperationsConstants.BIG_ARRAY);
-        parallelOperations.sum();
+        parallelOperations.sum2();
+    }
+
+    @Benchmark
+    @Fork(1)
+    public void sixThreadQueue() {
+
+        ParallelOperations parallelOperations = new ParallelOperations(6, OperationsConstants.BIG_ARRAY);
+        parallelOperations.sum2();
     }
 }
