@@ -5,12 +5,9 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicIntegerArray;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 public class ParallelOperations {
-    private Lock lock = new ReentrantLock();
     private final int threadNumber;
     private AtomicIntegerArray values;
     private ConcurrentLinkedDeque<Integer> queue;

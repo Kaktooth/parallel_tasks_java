@@ -28,7 +28,7 @@ public class SimpleBenchmark {
     @Fork(1)
     public void twoThreadQueue() {
 
-        ParallelOperations parallelOperations = new ParallelOperations(6, OperationsConstants.BIG_ARRAY);
+        ParallelOperations parallelOperations = new ParallelOperations(2, OperationsConstants.BIG_ARRAY);
         parallelOperations.sum2();
     }
 
