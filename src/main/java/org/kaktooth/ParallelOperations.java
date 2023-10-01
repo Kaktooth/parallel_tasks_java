@@ -11,28 +11,30 @@ public class ParallelOperations {
     private final int threadNumber;
     private AtomicIntegerArray values;
     private ConcurrentLinkedDeque<Integer> queue;
-    private ExecutorService ex;
+    private final ExecutorService ex;
 
-    public ParallelOperations(int[] values) {
-        this.threadNumber = (int) (Math.log(values.length) / Math.log(2)) + 1;
-        this.values = new AtomicIntegerArray(values);
-        this.queue = Arrays.stream(values).boxed().collect(Collectors.toCollection(ConcurrentLinkedDeque::new));
+    public ParallelOperations(int size) {
+        this.threadNumber = (int) (Math.log(size) / Math.log(2)) + 1;
+        var array = getArray(size);
+        this.values = new AtomicIntegerArray(array);
+        this.queue = Arrays.stream(array).boxed().collect(Collectors.toCollection(ConcurrentLinkedDeque::new));
         ex = Executors.newFixedThreadPool(threadNumber);
     }
 
-    public ParallelOperations(int threadNumber, int[] values) {
+    public ParallelOperations(int threadNumber, int size) {
         this.threadNumber = threadNumber;
-        this.values = new AtomicIntegerArray(values);
-        this.queue = Arrays.stream(values).boxed().collect(Collectors.toCollection(ConcurrentLinkedDeque::new));
+        var array = getArray(size);
+        this.values = new AtomicIntegerArray(array);
+        this.queue = Arrays.stream(array).boxed().collect(Collectors.toCollection(ConcurrentLinkedDeque::new));
         ex = Executors.newFixedThreadPool(threadNumber);
     }
-
 
     private void applyRunnable(Runnable runnable) {
         ex.execute(runnable);
     }
 
     public void sum() {
+//      System.out.println(values);
         applyRunnable(this::waveAlgorithm);
         ex.shutdown();
     }
@@ -55,7 +57,7 @@ public class ParallelOperations {
         }
 
         values = newValues;
-        System.out.println(values);
+//      System.out.println(values);
 
         if (values.length() != 1) {
             waveAlgorithm();
@@ -63,7 +65,7 @@ public class ParallelOperations {
     }
 
     public void sum2() {
-        System.out.println(queue);
+//      System.out.println(queue);
         applyRunnable(this::waveAlgorithm2);
         ex.shutdown();
     }
@@ -83,10 +85,19 @@ public class ParallelOperations {
         }
         queue = newQueue;
 
-        System.out.println(queue);
+//      System.out.println(queue);
 
         if (queue.size() != 1) {
             waveAlgorithm2();
         }
+    }
+
+    private int[] getArray(int size) {
+        int[] array = new int[size];
+
+        for (int i = 0; i < size; i++) {
+            array[i] = i + 1;
+        }
+        return array;
     }
 }
