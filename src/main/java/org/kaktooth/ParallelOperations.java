@@ -4,62 +4,61 @@ import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicLongArray;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class ParallelOperations {
-    private final int threadNumber;
-    private AtomicIntegerArray values;
-    private ConcurrentLinkedDeque<Integer> queue;
-    private final ExecutorService ex;
+    private long[] array;
+    private AtomicLongArray values;
+    private final AtomicReference<ConcurrentLinkedDeque<Long>> queue;
+    private final ExecutorService executor;
 
     public ParallelOperations(int size) {
-        this.threadNumber = (int) (Math.log(size) / Math.log(2)) + 1;
-        var array = getArray(size);
-        this.values = new AtomicIntegerArray(array);
-        this.queue = Arrays.stream(array).boxed().collect(Collectors.toCollection(ConcurrentLinkedDeque::new));
-        ex = Executors.newFixedThreadPool(threadNumber);
-    }
-
-    public ParallelOperations(int threadNumber, int size) {
-        this.threadNumber = threadNumber;
-        var array = getArray(size);
-        this.values = new AtomicIntegerArray(array);
-        this.queue = Arrays.stream(array).boxed().collect(Collectors.toCollection(ConcurrentLinkedDeque::new));
-        ex = Executors.newFixedThreadPool(threadNumber);
+        this.array = getArray(size);
+        this.values = new AtomicLongArray(array);
+        this.queue = new AtomicReference<>(Arrays.stream(array).boxed().collect(Collectors.toCollection(ConcurrentLinkedDeque::new)));
+        executor = Executors.newCachedThreadPool();
     }
 
     private void applyRunnable(Runnable runnable) {
-        ex.execute(runnable);
+        executor.execute(runnable);
+    }
+
+    public void shutdown() {
+        executor.shutdown();
     }
 
     public void sum() {
 //      System.out.println(values);
         applyRunnable(this::waveAlgorithm);
-        ex.shutdown();
     }
 
     private void waveAlgorithm() {
 
-        int nextLength = (values.length() + 1) / 2;
-        var newValues = new AtomicIntegerArray(nextLength);
-        int lastIndex;
-        int sum;
-        for (int i = 0; i < nextLength; i++) {
-            int haveNoPair = values.length() % 2;
-            lastIndex = values.length() - 1 - i;
-            if (haveNoPair == 1 && i == lastIndex) {
-                newValues.set(i, values.get(i));
-            } else {
-                sum = values.get(i) + values.get(lastIndex);
-                newValues.set(i, sum);
-            }
-        }
-
-        values = newValues;
-//      System.out.println(values);
-
+        var nextLength = new AtomicInteger((values.length() + 1) / 2);
+        var newValues = new AtomicLongArray(nextLength.get());
+        var lastIndex = new AtomicInteger();
+        var sum = new AtomicLong();
+        var i = new AtomicInteger(0);
         if (values.length() != 1) {
+            while (i.get() < nextLength.get()) {
+                int haveNoPair = values.length() % 2;
+                lastIndex.set(values.length() - 1 - i.get());
+                if (haveNoPair == 1 && i.get() == lastIndex.get()) {
+                    newValues.set(i.get(), values.get(i.get()));
+                } else {
+                    sum.set(values.get(i.get()) + values.get(lastIndex.get()));
+                    newValues.set(i.get(), sum.get());
+                }
+                i.getAndIncrement();
+            }
+            synchronized (this) {
+                values = newValues;
+            }
+//      System.out.println(values);
             waveAlgorithm();
         }
     }
@@ -67,33 +66,57 @@ public class ParallelOperations {
     public void sum2() {
 //      System.out.println(queue);
         applyRunnable(this::waveAlgorithm2);
-        ex.shutdown();
     }
 
     private void waveAlgorithm2() {
 
-        int nextLength = (queue.size() + 1) / 2;
-        var newQueue = new ConcurrentLinkedDeque<Integer>();
-        int sum;
-        for (int i = 0; i < nextLength; i++) {
-            if (queue.size() == 1) {
-                newQueue.add(queue.pollFirst());
+        var nextLength = new AtomicInteger((queue.get().size() + 1) / 2);
+        var newQueue = new ConcurrentLinkedDeque<Long>();
+        var sum = new AtomicLong();
+        var i = new AtomicInteger();
+        for (; i.get() < nextLength.get(); i.getAndIncrement()) {
+            if (queue.get().size() == 1) {
+                newQueue.add(queue.get().pollFirst());
             } else {
-                sum = queue.pollFirst() + queue.pollLast();
-                newQueue.add(sum);
+                sum.set(queue.get().pollFirst() + queue.get().pollLast());
+                newQueue.add(sum.get());
             }
         }
-        queue = newQueue;
 
-//      System.out.println(queue);
+        queue.set(newQueue);
 
-        if (queue.size() != 1) {
+
+//        System.out.println(queue);
+
+        if (queue.get().size() != 1) {
             waveAlgorithm2();
         }
     }
 
-    private int[] getArray(int size) {
-        int[] array = new int[size];
+    public void waveAlgorithm3() {
+        int iterations = (int) (Math.log(array.length) / Math.log(2)) + 1;
+        for (int it = 0; it < iterations; it++) {
+            int nextLength = (array.length + 1) / 2;
+            long[] newValues = new long[nextLength];
+            int lastIndex;
+            long sum;
+            for (int i = 0; i < nextLength; i++) {
+                int haveNoPair = array.length % 2;
+                lastIndex = array.length - 1 - i;
+                if (haveNoPair == 1 && i == lastIndex) {
+                    newValues[i] = array[i];
+                } else {
+                    sum = array[i] + array[lastIndex];
+                    newValues[i] = sum;
+                }
+            }
+            array = newValues;
+//            System.out.println(Arrays.toString(array));
+        }
+    }
+
+    private long[] getArray(int size) {
+        long[] array = new long[size];
 
         for (int i = 0; i < size; i++) {
             array[i] = i + 1;

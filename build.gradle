@@ -29,7 +29,5 @@ test {
 }
 
 jmh {
-    warmupIterations = 2
-    iterations = 4
     resultFormat = 'JSON'
 }
