@@ -5,10 +5,10 @@ import org.openjdk.jmh.annotations.*;
 import java.util.concurrent.TimeUnit;
 
 @State(Scope.Thread)
-@BenchmarkMode(Mode.SingleShotTime)
+@BenchmarkMode(Mode.All)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 public class SumAlgorithmBenchmark {
-    ParallelOperations parallelOperations = new ParallelOperations(10000000);
+    ParallelOperations parallelOperations = new ParallelOperations(100000000);
 
     @Benchmark
     @Fork(1)

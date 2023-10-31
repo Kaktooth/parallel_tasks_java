@@ -24,7 +24,10 @@ public class ParallelOperations {
     }
 
     private void applyRunnable(Runnable runnable) {
-        executor.execute(runnable);
+        final int threads = 12;
+        for (int i = 0; i < threads; i++) {
+            executor.execute(runnable);
+        }
     }
 
     public void shutdown() {
@@ -36,7 +39,7 @@ public class ParallelOperations {
         applyRunnable(this::waveAlgorithm);
     }
 
-    private void waveAlgorithm() {
+    private synchronized void waveAlgorithm() {
 
         var nextLength = new AtomicInteger((values.length() + 1) / 2);
         var newValues = new AtomicLongArray(nextLength.get());
@@ -68,7 +71,7 @@ public class ParallelOperations {
         applyRunnable(this::waveAlgorithm2);
     }
 
-    private void waveAlgorithm2() {
+    private synchronized void waveAlgorithm2() {
 
         var nextLength = new AtomicInteger((queue.get().size() + 1) / 2);
         var newQueue = new ConcurrentLinkedDeque<Long>();
