@@ -61,7 +61,7 @@ public class ParallelOperations {
 
             values = newValues;
 
-      System.out.println(values);
+//      System.out.println(values);
             waveAlgorithm();
         }
     }

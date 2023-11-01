@@ -1,8 +1,7 @@
 package org.kaktooth;
 
 import org.openjdk.jmh.annotations.*;
-import org.openjdk.jmh.profile.GCProfiler;
-import org.openjdk.jmh.profile.StackProfiler;
+import org.openjdk.jmh.profile.WinPerfAsmProfiler;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.*;
@@ -19,8 +18,8 @@ public class SumAlgorithmBenchmark {
         Options opt = new OptionsBuilder()
                 .include(SumAlgorithmBenchmark.class.getSimpleName())
                 .parent(new CommandLineOptions(args))
-                .addProfiler(StackProfiler.class)
-                .addProfiler(GCProfiler.class)
+                .addProfiler(WinPerfAsmProfiler.class)
+//                .addProfiler(GCProfiler.class)
                 .verbosity(VerboseMode.EXTRA)
                 .result("build/results/jmh/profiler.csv")
                 .output("build/results/jmh/profiler.log")
