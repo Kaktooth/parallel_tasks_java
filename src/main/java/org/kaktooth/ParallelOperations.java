@@ -58,10 +58,10 @@ public class ParallelOperations {
                 }
                 i.getAndIncrement();
             }
-            synchronized (this) {
-                values = newValues;
-            }
-//      System.out.println(values);
+
+            values = newValues;
+
+      System.out.println(values);
             waveAlgorithm();
         }
     }
