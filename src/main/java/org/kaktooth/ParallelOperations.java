@@ -1,33 +1,34 @@
 package org.kaktooth;
 
 import java.util.Arrays;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongArray;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 public class ParallelOperations {
-    private long[] array;
+    long[] array;
     private AtomicLongArray values;
-    private final AtomicReference<ConcurrentLinkedDeque<Long>> queue;
     private final ExecutorService executor;
+    private AtomicInteger nextLength;
+    private AtomicLongArray newValues;
+    private AtomicInteger lastIndex = new AtomicInteger();
+    private AtomicLong sum = new AtomicLong();
+    private AtomicInteger i = new AtomicInteger(0);
 
     public ParallelOperations(int size) {
         this.array = getArray(size);
         this.values = new AtomicLongArray(array);
-        this.queue = new AtomicReference<>(Arrays.stream(array).boxed().collect(Collectors.toCollection(ConcurrentLinkedDeque::new)));
-        executor = Executors.newCachedThreadPool();
+
+        final int cores = Runtime.getRuntime().availableProcessors();
+        executor = Executors.newFixedThreadPool(cores);
+
+        nextLength = new AtomicInteger((values.length() + 1) / 2);
+        newValues = new AtomicLongArray(nextLength.get());
     }
 
     private void applyRunnable(Runnable runnable) {
-        final int threads = 12;
-        for (int i = 0; i < threads; i++) {
-            executor.execute(runnable);
-        }
+        executor.execute(runnable);
     }
 
     public void shutdown() {
@@ -35,18 +36,13 @@ public class ParallelOperations {
     }
 
     public void sum() {
-//      System.out.println(values);
         applyRunnable(this::waveAlgorithm);
     }
 
     private synchronized void waveAlgorithm() {
-
-        var nextLength = new AtomicInteger((values.length() + 1) / 2);
-        var newValues = new AtomicLongArray(nextLength.get());
-        var lastIndex = new AtomicInteger();
-        var sum = new AtomicLong();
-        var i = new AtomicInteger(0);
-        if (values.length() != 1) {
+        while (values.length() != 1) {
+            nextLength.set((values.length() + 1) / 2);
+            newValues = new AtomicLongArray(nextLength.get());
             while (i.get() < nextLength.get()) {
                 int haveNoPair = values.length() % 2;
                 lastIndex.set(values.length() - 1 - i.get());
@@ -58,45 +54,16 @@ public class ParallelOperations {
                 }
                 i.getAndIncrement();
             }
-
+            i.set(0);
             values = newValues;
 
-//      System.out.println(values);
-            waveAlgorithm();
-        }
-    }
-
-    public void sum2() {
-//      System.out.println(queue);
-        applyRunnable(this::waveAlgorithm2);
-    }
-
-    private synchronized void waveAlgorithm2() {
-
-        var nextLength = new AtomicInteger((queue.get().size() + 1) / 2);
-        var newQueue = new ConcurrentLinkedDeque<Long>();
-        var sum = new AtomicLong();
-        var i = new AtomicInteger();
-        for (; i.get() < nextLength.get(); i.getAndIncrement()) {
-            if (queue.get().size() == 1) {
-                newQueue.add(queue.get().pollFirst());
-            } else {
-                sum.set(queue.get().pollFirst() + queue.get().pollLast());
-                newQueue.add(sum.get());
+            if (values.length() == 1) {
+                System.out.println(values);
             }
         }
-
-        queue.set(newQueue);
-
-
-//        System.out.println(queue);
-
-        if (queue.get().size() != 1) {
-            waveAlgorithm2();
-        }
     }
 
-    public void waveAlgorithm3() {
+    public void singleThreadedWaveAlgorithm() {
         int iterations = (int) (Math.log(array.length) / Math.log(2)) + 1;
         for (int it = 0; it < iterations; it++) {
             int nextLength = (array.length + 1) / 2;
@@ -114,8 +81,9 @@ public class ParallelOperations {
                 }
             }
             array = newValues;
-//            System.out.println(Arrays.toString(array));
         }
+
+        System.out.println(Arrays.toString(array));
     }
 
     private long[] getArray(int size) {

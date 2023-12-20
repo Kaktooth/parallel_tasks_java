@@ -1,49 +1,37 @@
 package org.kaktooth;
 
 import org.openjdk.jmh.annotations.*;
-import org.openjdk.jmh.profile.WinPerfAsmProfiler;
-import org.openjdk.jmh.runner.Runner;
-import org.openjdk.jmh.runner.RunnerException;
-import org.openjdk.jmh.runner.options.*;
 
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 @State(Scope.Thread)
-@BenchmarkMode(Mode.SingleShotTime)
+@BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 public class SumAlgorithmBenchmark {
-    ParallelOperations parallelOperations = new ParallelOperations(100000000);
 
-    public static void main(String[] args) throws RunnerException, CommandLineOptionException {
-        Options opt = new OptionsBuilder()
-                .include(SumAlgorithmBenchmark.class.getSimpleName())
-                .parent(new CommandLineOptions(args))
-                .addProfiler(WinPerfAsmProfiler.class)
-//                .addProfiler(GCProfiler.class)
-                .verbosity(VerboseMode.EXTRA)
-                .result("build/results/jmh/profiler.csv")
-                .output("build/results/jmh/profiler.log")
-                .build();
+    @Param({"100", "1000", "10000", "100000", "1000000", "10000000", "100000000"})
+    int arraySize;
 
-        new Runner(opt).run();
+    ParallelOperations parallelOperations;
+
+    @Setup(Level.Invocation)
+    public void init() {
+        this.parallelOperations = new ParallelOperations(arraySize);
+        System.out.println("array size: " + parallelOperations.array.length
+                + " " + Arrays.toString(parallelOperations.array).substring(0, 15) + "...");
     }
 
     @Benchmark
     @Fork(1)
     public void singleThreadedLongArray() {
-        parallelOperations.waveAlgorithm3();
+        parallelOperations.singleThreadedWaveAlgorithm();
     }
 
     @Benchmark
     @Fork(1)
     public void atomicArray() {
         parallelOperations.sum();
-    }
-
-    @Benchmark
-    @Fork(1)
-    public void queue() {
-        parallelOperations.sum2();
     }
 
     @TearDown
