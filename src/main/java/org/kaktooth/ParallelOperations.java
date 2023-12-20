@@ -14,13 +14,17 @@ public class ParallelOperations {
     private AtomicLongArray newValues;
     private AtomicInteger lastIndex = new AtomicInteger();
     private AtomicLong sum = new AtomicLong();
-    private AtomicInteger i = new AtomicInteger(0);
+    private AtomicInteger nextLengthIteration = new AtomicInteger(0);
+    private final Phaser phaser;
+    private long[] secondValues;
 
     public ParallelOperations(int size) {
         this.array = getArray(size);
         this.values = new AtomicLongArray(array);
+        this.secondValues = array;
 
         final int cores = Runtime.getRuntime().availableProcessors();
+        phaser = new Phaser();
         executor = Executors.newFixedThreadPool(cores);
 
         nextLength = new AtomicInteger((values.length() + 1) / 2);
@@ -29,6 +33,16 @@ public class ParallelOperations {
 
     private void applyRunnable(Runnable runnable) {
         executor.execute(runnable);
+    }
+
+    private long[] applyCallable(Callable<long[]> callable) {
+        try {
+            return executor.submit(callable).get();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void shutdown() {
@@ -43,24 +57,53 @@ public class ParallelOperations {
         while (values.length() != 1) {
             nextLength.set((values.length() + 1) / 2);
             newValues = new AtomicLongArray(nextLength.get());
-            while (i.get() < nextLength.get()) {
+            while (nextLengthIteration.get() < nextLength.get()) {
                 int haveNoPair = values.length() % 2;
-                lastIndex.set(values.length() - 1 - i.get());
-                if (haveNoPair == 1 && i.get() == lastIndex.get()) {
-                    newValues.set(i.get(), values.get(i.get()));
+                lastIndex.set(values.length() - 1 - nextLengthIteration.get());
+                if (haveNoPair == 1 && nextLengthIteration.get() == lastIndex.get()) {
+                    newValues.set(nextLengthIteration.get(), values.get(nextLengthIteration.get()));
                 } else {
-                    sum.set(values.get(i.get()) + values.get(lastIndex.get()));
-                    newValues.set(i.get(), sum.get());
+                    sum.set(values.get(nextLengthIteration.get()) + values.get(lastIndex.get()));
+                    newValues.set(nextLengthIteration.get(), sum.get());
                 }
-                i.getAndIncrement();
+                nextLengthIteration.getAndIncrement();
             }
-            i.set(0);
+            nextLengthIteration.set(0);
             values = newValues;
 
             if (values.length() == 1) {
                 System.out.println(values);
             }
         }
+    }
+
+    public void sum2() {
+        try {
+            while (secondValues.length != 1) {
+                secondValues = applyCallable(this::waveAlgorithm2);
+            }
+            System.out.println(Arrays.toString(secondValues));
+        } finally {
+            phaser.forceTermination();
+        }
+    }
+
+    private long[] waveAlgorithm2() {
+        phaser.register();
+        int nextLength = (secondValues.length + 1) / 2;
+        long[] newValues = new long[nextLength];
+
+        for (int i = 0; i < nextLength; i++) {
+            int lastIndex = secondValues.length - i - 1;
+            newValues[i] += secondValues[i];
+            if (i != lastIndex) {
+                newValues[i] += secondValues[lastIndex];
+            }
+        }
+
+        phaser.arriveAndAwaitAdvance();
+        phaser.arriveAndDeregister();
+        return newValues;
     }
 
     public void singleThreadedWaveAlgorithm() {

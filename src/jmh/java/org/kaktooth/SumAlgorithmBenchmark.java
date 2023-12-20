@@ -8,6 +8,8 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Thread)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
+@Warmup(iterations = 2)
+@Measurement(iterations = 6)
 public class SumAlgorithmBenchmark {
 
     @Param({"100", "1000", "10000", "100000", "1000000", "10000000", "100000000"})
@@ -23,13 +25,19 @@ public class SumAlgorithmBenchmark {
     }
 
     @Benchmark
-    @Fork(1)
+    @Fork(0)
     public void singleThreadedLongArray() {
         parallelOperations.singleThreadedWaveAlgorithm();
     }
 
     @Benchmark
-    @Fork(1)
+    @Fork(0)
+    public void barrier() {
+        parallelOperations.sum2();
+    }
+
+    @Benchmark
+    @Fork(0)
     public void atomicArray() {
         parallelOperations.sum();
     }

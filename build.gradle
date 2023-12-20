@@ -30,4 +30,5 @@ test {
 
 jmh {
     resultFormat = 'JSON'
+    iterations = 4
 }
